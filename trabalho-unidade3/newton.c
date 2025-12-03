@@ -17,11 +17,15 @@ VERSÃO: 1.1.5
 
 #include "math.h"
 #include <stdio.h>
+#include <time.h>
+
+#define e 2.718281828459045
+#define TOL 1e-6
+#define MAX_ITER 100
 
 void EliminacaoGauss(float mat[3][4], float a, float b, float c) {
   int i, j, k;
   float pivo;
-  #define e 2.718281828459045
 
   // Aplicando a eliminação de Gauss
   for (i = 0; i < 3; i++) {
@@ -37,7 +41,6 @@ void EliminacaoGauss(float mat[3][4], float a, float b, float c) {
   // Resolvendo o sistema de equações
   printf("Soluções:\n");
   float x[3];
-  float s[3];
   for (i = 2; i >= 0; i--) {
     x[i] = mat[i][3];
     for (j = i + 1; j < 3; j++) {
@@ -67,17 +70,20 @@ void EliminacaoGauss(float mat[3][4], float a, float b, float c) {
 }
 
 int main(void) {
-  int n, i, j;
+  int i, j, iteracoes = 0;
+  clock_t inicio, fim;
+  double tempo_processamento;
 
   // VARIÁVEIS DE CONTROLE DO SISTEMA NÃ0-LINEAR(CHUTE INICIAL)
-  float x_1 = 0.03;
-  float x_2 = 0.03;
-  float x_3 = -0.03;
+  float x_1 = 0.01;
+  float x_2 = 0.01;
+  float x_3 = -0.01;
 
   float f_1, f_2, f_3;
-  float df_1, df_2, df_3;
+  float norma_f;
 
-#define e 2.718281828459045
+  // Iniciar medição de tempo
+  inicio = clock();
 
   // SISTEMA NÃO-LINEAR:
   f_1 = x_1 * x_3 - x_3 * pow(e, pow(x_1, 2)) + pow(10, -4);
@@ -119,7 +125,7 @@ int main(void) {
   float mat[3][4];
 
   for (i = 0; i < 3; i++) {
-    for (j = 0; j <= 3; j++) {
+    for (j = 0; j < 3; j++) {
       mat[i][j] = jacobiana[i][j];
     }
   }
@@ -135,6 +141,40 @@ int main(void) {
     printf("\n");
   }
 
+  // Loop do Método de Newton-Raphson
+  while (iteracoes < MAX_ITER) {
+    EliminacaoGauss(mat, x_1, x_2, x_3);
+    
+    // Recalcular norma do vetor F para verificar convergência
+    f_1 = x_1 * x_3 - x_3 * pow(e, pow(x_1, 2)) + pow(10, -4);
+    f_2 = x_1 * (pow(x_1, 2) + pow(x_2, 2)) + pow(x_2, 2) * (x_3 - x_2);
+    f_3 = (pow(x_1, 3) + pow(x_3, 3));
+    
+    norma_f = sqrt(f_1 * f_1 + f_2 * f_2 + f_3 * f_3);
+    
+    iteracoes++;
+    printf("\nIteração %d: Norma F = %.6e\n", iteracoes, norma_f);
+    
+    if (norma_f < TOL) {
+      printf("\nConvergência atingida em %d iterações!\n", iteracoes);
+      break;
+    }
+  }
+  
+  if (iteracoes >= MAX_ITER) {
+    printf("\nNúmero máximo de iterações (%d) atingido sem convergência.\n", MAX_ITER);
+  }
+
   EliminacaoGauss(mat, x_1, x_2, x_3);
+  
+  // Parar medição de tempo
+  fim = clock();
+  tempo_processamento = ((double)(fim - inicio)) / CLOCKS_PER_SEC;
+  
+  printf("\n======== RESUMO FINAL ========\n");
+  printf("Total de iterações: %d\n", iteracoes);
+  printf("Tempo de processamento: %.6f segundos\n", tempo_processamento);
+  printf("Tempo de processamento: %.3f milissegundos\n", tempo_processamento * 1000);
+  
   return 0;
 }
